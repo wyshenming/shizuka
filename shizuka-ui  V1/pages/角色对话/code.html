@@ -1,0 +1,188 @@
+<!DOCTYPE html><html lang="zh-CN" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Shizuka UI - Chat</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#3f4b30",
+                        "primary": "#41646b",
+                        "secondary-fixed": "#ebdef2",
+                        "primary-fixed": "#c3e9f1",
+                        "secondary-container": "#ebdef2",
+                        "surface-dim": "#d9dadb",
+                        "on-tertiary-container": "#495539",
+                        "on-primary-fixed-variant": "#284c53",
+                        "on-background": "#191c1d",
+                        "surface-container-highest": "#e1e3e4",
+                        "primary-fixed-dim": "#a8cdd5",
+                        "on-surface": "#191c1d",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e7e8e9",
+                        "surface-container": "#edeeef",
+                        "on-secondary-fixed-variant": "#4c4453",
+                        "on-tertiary-fixed": "#141f08",
+                        "surface-bright": "#f8f9fa",
+                        "surface": "#f8f9fa",
+                        "on-primary-container": "#32565d",
+                        "error": "#ba1a1a",
+                        "secondary": "#645b6b",
+                        "on-secondary-fixed": "#1f1926",
+                        "on-surface-variant": "#41484a",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed-dim": "#cec2d5",
+                        "outline": "#71787a",
+                        "inverse-surface": "#2e3132",
+                        "tertiary": "#566246",
+                        "on-secondary-container": "#6a6171",
+                        "inverse-primary": "#a8cdd5",
+                        "on-primary-fixed": "#001f24",
+                        "background": "#f8f9fa",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f3f4f5",
+                        "tertiary-fixed-dim": "#becba8",
+                        "inverse-on-surface": "#f0f1f2",
+                        "primary-container": "#a5cad2",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-variant": "#e1e3e4",
+                        "surface-tint": "#41646b",
+                        "tertiary-fixed": "#dae8c3",
+                        "tertiary-container": "#bbc9a6",
+                        "outline-variant": "#c1c8c9",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "element-gap": "16px",
+                        "max-width-desktop": "800px",
+                        "dialogue-spacing": "32px",
+                        "container-padding": "24px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "system-msg": ["Plus Jakarta Sans"],
+                        "display-name": ["Noto Serif SC"],
+                        "dialogue-main": ["Plus Jakarta Sans"],
+                        "ui-label-sm": ["Plus Jakarta Sans"],
+                        "dialogue-main-mobile": ["Plus Jakarta Sans"],
+                        "ui-label-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "system-msg": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "display-name": ["24px", {"lineHeight": "32px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "dialogue-main": ["18px", {"lineHeight": "1.8", "letterSpacing": "0.01em", "fontWeight": "400"}],
+                        "ui-label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "dialogue-main-mobile": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "ui-label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #F8F9FA;
+            color: #191c1d;
+        }
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .msg-bubble {
+            box-shadow: 0 4px 20px rgba(65, 100, 107, 0.05);
+        }
+        .backdrop-blur-glass {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-dialogue-main text-dialogue-main bg-background overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-container-padding h-16 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/30 chat-container shadow-sm">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors text-primary hover:opacity-80 transition-opacity duration-300">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<h1 class="font-display-name text-display-name text-primary absolute left-1/2 transform -translate-x-1/2">
+            花泽类
+        </h1>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors text-primary hover:opacity-80 transition-opacity duration-300">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">person</span>
+</button> <!-- Placeholder for centering -->
+</header>
+<!-- Main Chat Area -->
+<main class="flex-1 w-full chat-container px-container-padding pt-24 pb-32 flex flex-col gap-dialogue-spacing">
+<!-- System Message / Date -->
+<div class="flex justify-center">
+<span class="font-system-msg text-system-msg text-on-surface-variant/60">
+                10月15日 下午 4:30
+            </span>
+</div>
+<!-- Character Message -->
+<div class="flex items-start gap-4 max-w-[85%]">
+<div class="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border border-surface-variant bg-surface-container-high flex items-center justify-center">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="A gentle, soft-focus portrait of an elegant young man with dark hair in a serene, sunlit minimalist setting. The aesthetic is clean, bright, and reminiscent of a modern visual novel. Colors are muted with a soft light mode feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2857dp382p-feA4dZi1DR7KyY7sOVQmPrg8Tfys54o8iH1MgBc-v-fVp3xVF3LjH0kqUQXxdq87x_uByzqco__OE6_3Hlp6OmN86Y2xQhBkUFS-RTQ81LhzVX2wU2w-xC40pXqzdwEbyqoAhQl8bwlVJPti1KSE6qezh4KQg4NXdYtQaxSdaeaVodtUIOU-DX-NEvMdX02G9Cted72y8q-ArPySiy9g_jwjV919lJ4ZVnhWz-TXI-JE0Qi_22zwLZfZpDVwNoV9U">
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-ui-label-sm text-ui-label-sm text-on-surface-variant pl-2 font-display-name">花泽类</span>
+<div class="msg-bubble bg-surface-variant/50 text-on-surface backdrop-blur-sm rounded-2xl rounded-tl-none p-4 font-dialogue-main text-dialogue-main">
+                    窗外的阳光很好，适合安静地看书。<br>你今天过得怎么样？
+                </div>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex items-start gap-4 max-w-[85%] self-end flex-row-reverse">
+<div class="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border border-primary-container bg-primary-container/20 flex items-center justify-center">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A soft, aesthetically pleasing detail shot of delicate white flowers in a subtle, sunlit room, conveying a sense of quiet introspection and calm. Minimalist, light mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXPgkOvUKHXBtwBoDoUvTewpOFEpXI4-oZvl8iHgOvEn1o5LoXM1ineYLaBVV1m6SKdenESnAjYUaNPjyc-cSMozYNqM59QKqRRwh5jxnJC1DaBWdSX3wn8_XVkmOWfeX5cPq6BE5iwUJbpsDgnzwjLiGiVgLlLhVf_1lcR_uan2MzjFImQxgXF4L1N8pH5JtS7XjGnyooEZJChnkWx8aCu-YDOVfTQZ7Ey0s4o5wrGLtPctX3ZXmAbRqITG7380Abi4Dcymw-vcA">
+</div>
+<div class="flex flex-col gap-1 items-end">
+<span class="font-ui-label-sm text-ui-label-sm text-on-surface-variant pr-2">我</span>
+<div class="msg-bubble bg-primary-container text-on-primary-container rounded-2xl rounded-tr-none p-4 font-dialogue-main text-dialogue-main">
+                    还不错。只是一直在想，如果是你，会推荐我看哪本书。
+                </div>
+</div>
+</div>
+<!-- Character Message -->
+<div class="flex items-start gap-4 max-w-[85%]">
+<div class="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border border-surface-variant bg-surface-container-high flex items-center justify-center">
+<img alt="Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSP4C6pbugzzY7Kr_LaWShwciQcxzMmwBeWfKZyq0ocONX_10sz2cvBuhOCb5Ea2eGMFa2Q3nl_Gv4HwaKmJU-pZbfiSzsJNUUvP6B6gYwYIsG6RJ1K6O0JTjsO-4ewkhIu0ASPJghZUczxKz9YjyeQ3CedsNrrvniY88kjP9DJjwhAmf7rbw-iEXOScpVMXtNOqvx5d7K8XSazndLiFxBLK0UMvH4Tzl63Sh-oByl3Mle7C7m3qtgLgGCpDaM7W64B6WeBqBA2Ww">
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-ui-label-sm text-ui-label-sm text-on-surface-variant pl-2 font-display-name">花泽类</span>
+<div class="msg-bubble bg-surface-variant/50 text-on-surface backdrop-blur-sm rounded-2xl rounded-tl-none p-4 font-dialogue-main text-dialogue-main">
+                    我会推荐那本关于时间与等待的诗集。<br>就像现在的午后一样，静谧而漫长。
+                </div>
+</div>
+</div>
+</main>
+<!-- Bottom Input Area -->
+<div class="fixed bottom-0 left-0 w-full z-50 bg-surface/80 backdrop-blur-glass border-t border-outline-variant/20 pb-safe">
+<div class="chat-container px-container-padding py-4 flex gap-3 items-center">
+<div class="flex-1 relative">
+<textarea class="w-full bg-surface-container-low border border-outline-variant/30 rounded-full px-5 py-3 font-dialogue-main-mobile text-dialogue-main-mobile text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 resize-none transition-all duration-300 backdrop-blur-sm" placeholder="ddd" rows="1"></textarea>
+</div>
+<button class="flex-shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors duration-300 w-[52px] h-[52px]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+<!-- No BottomNavBar per suppression rules for task-focused / deep-dive screens -->
+
+
+</body></html>
