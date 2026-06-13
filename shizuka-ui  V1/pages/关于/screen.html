@@ -1,0 +1,177 @@
+<!DOCTYPE html><html class="light" lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>关于 - Sound of Silence</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts: Noto Serif SC for the poetic feel, Plus Jakarta Sans for UI -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;400;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed-dim": "#a8cdd5",
+                    "on-surface": "#191c1d",
+                    "surface": "#f8f9fa",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container": "#edeeef",
+                    "surface-container-low": "#f3f4f5",
+                    "surface-bright": "#f8f9fa",
+                    "on-secondary-container": "#6a6171",
+                    "on-primary": "#ffffff",
+                    "outline-variant": "#c1c8c9",
+                    "on-error-container": "#93000a",
+                    "surface-container-high": "#e7e8e9",
+                    "on-primary-fixed-variant": "#284c53",
+                    "tertiary-fixed-dim": "#becba8",
+                    "on-tertiary-fixed-variant": "#3f4b30",
+                    "inverse-on-surface": "#f0f1f2",
+                    "primary-container": "#a5cad2",
+                    "on-tertiary-fixed": "#141f08",
+                    "on-surface-variant": "#41484a",
+                    "surface-dim": "#d9dadb",
+                    "primary": "#41646b",
+                    "surface-tint": "#41646b",
+                    "on-secondary-fixed": "#1f1926",
+                    "error": "#ba1a1a",
+                    "secondary-container": "#ebdef2",
+                    "background": "#f8f9fa",
+                    "secondary-fixed-dim": "#cec2d5",
+                    "tertiary-fixed": "#dae8c3",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-secondary-fixed-variant": "#4c4453",
+                    "secondary": "#645b6b",
+                    "on-tertiary": "#ffffff",
+                    "on-background": "#191c1d",
+                    "outline": "#71787a",
+                    "tertiary": "#566246",
+                    "on-tertiary-container": "#495539",
+                    "inverse-surface": "#2e3132",
+                    "secondary-fixed": "#ebdef2",
+                    "on-secondary": "#ffffff",
+                    "primary-fixed": "#c3e9f1",
+                    "on-primary-fixed": "#001f24",
+                    "on-error": "#ffffff",
+                    "tertiary-container": "#bbc9a6",
+                    "surface-variant": "#e1e3e4",
+                    "on-primary-container": "#32565d",
+                    "inverse-primary": "#a8cdd5",
+                    "error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "4px",
+                    "element-gap": "16px",
+                    "dialogue-spacing": "32px",
+                    "container-padding": "24px",
+                    "max-width-desktop": "800px"
+            },
+            "fontFamily": {
+                    "ui-label-lg": ["Plus Jakarta Sans"],
+                    "ui-label-sm": ["Plus Jakarta Sans"],
+                    "system-msg": ["Plus Jakarta Sans"],
+                    "display-name": ["Noto Serif SC"],
+                    "dialogue-main-mobile": ["Plus Jakarta Sans"],
+                    "dialogue-main": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "ui-label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                    "ui-label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "system-msg": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "display-name": ["24px", {"lineHeight": "32px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "dialogue-main-mobile": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "dialogue-main": ["18px", {"lineHeight": "1.8", "letterSpacing": "0.01em", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        body {
+            background-color: #f8f9fa; /* Explicit surface color from design system */
+            overflow: hidden; /* Maintain a static, calm sanctuary feel */
+        }
+
+        .poetic-fade-in {
+            animation: fadeIn 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Subtle background pulse for "Silence" theme */
+        .ambient-glow {
+            background: radial-gradient(circle at 50% 50%, rgba(168, 205, 213, 0.08) 0%, rgba(248, 249, 250, 0) 70%);
+            pointer-events: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface">
+<!-- Top Navigation Bar -->
+<!-- Applying Shared Component logic for TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/30">
+<div class="flex justify-between items-center px-container-padding h-16 max-w-desktop mx-auto">
+<!-- Back Button -->
+<button aria-label="返回" class="text-on-surface-variant hover:bg-primary-container/20 transition-colors duration-300 p-2 rounded-full active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<!-- Headline -->
+<h1 class="font-display-name text-display-name text-on-surface absolute left-1/2 -translate-x-1/2">关于</h1>
+<!-- Trailing Space (Empty for minimalist requirement) -->
+<div class="w-10"></div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="relative h-screen w-full flex items-center justify-center overflow-hidden">
+<!-- Ambient Decorative Layer -->
+<div class="absolute inset-0 ambient-glow"></div>
+<!-- The Content: Poetic Minimalist Text -->
+<section class="max-w-desktop px-container-padding text-center relative z-10">
+<p class="poetic-fade-in font-display-name text-primary italic font-extralight tracking-[0.25em] md:text-[24px] text-[18px] opacity-80 select-none" style="transform: translate(3.9px, -3.32px);">
+                这是一份只属于你的故事
+            </p><p class="poetic-fade-in font-display-name text-primary italic font-extralight tracking-[0.25em] md:text-[24px] text-[18px] opacity-80 select-none mt-4">
+                愿每一次相遇，都能成为值得回忆的故事。
+            </p>
+</section>
+</main><footer class="fixed bottom-8 w-full text-center z-10">
+    <div class="flex flex-col items-center gap-1 opacity-40 text-on-surface-variant font-ui-label-sm">
+        <span class="">Version 1.0.0</span>
+        <a href="#" class="hover:text-primary transition-colors duration-300">GitHub</a>
+    </div>
+</footer>
+<!-- Interactive Atmospheric Script -->
+<script>
+        // Micro-interaction: Mouse tracking subtle parallax for the poetic text
+        document.addEventListener('mousemove', (e) => {
+            const text = document.querySelector('.poetic-fade-in');
+            const x = (window.innerWidth / 2 - e.pageX) / 50;
+            const y = (window.innerHeight / 2 - e.pageY) / 50;
+            
+            text.style.transform = `translate(${x}px, ${y}px)`;
+        });
+
+        // Suppression Logic: This is a sub-page/linear page, so we exclude the BottomNavBar as per the "Destination" rule.
+    </script>
+
+
+</body></html>

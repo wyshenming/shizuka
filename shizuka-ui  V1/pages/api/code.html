@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>API 设置 - Shizuka UI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&amp;family=Noto+Serif+SC:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        body {
+            background-color: #f8f9fa;
+            color: #191c1d;
+            -webkit-font-smoothing: antialiased;
+        }
+        /* Custom scrollbar for minimalist look */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c8c9;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container": "#edeeef",
+                      "on-secondary-fixed-variant": "#4c4453",
+                      "on-secondary-container": "#6a6171",
+                      "surface-variant": "#e1e3e4",
+                      "secondary-container": "#ebdef2",
+                      "on-error": "#ffffff",
+                      "tertiary-fixed-dim": "#becba8",
+                      "on-tertiary-container": "#495539",
+                      "on-primary-container": "#32565d",
+                      "secondary-fixed": "#ebdef2",
+                      "on-surface": "#191c1d",
+                      "on-primary": "#ffffff",
+                      "outline": "#71787a",
+                      "tertiary": "#566246",
+                      "on-secondary": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "surface-dim": "#d9dadb",
+                      "surface-container-low": "#f3f4f5",
+                      "on-error-container": "#93000a",
+                      "primary-container": "#a5cad2",
+                      "error-container": "#ffdad6",
+                      "tertiary-fixed": "#dae8c3",
+                      "on-tertiary-fixed": "#141f08",
+                      "primary-fixed-dim": "#a8cdd5",
+                      "on-secondary-fixed": "#1f1926",
+                      "tertiary-container": "#bbc9a6",
+                      "error": "#ba1a1a",
+                      "inverse-primary": "#a8cdd5",
+                      "background": "#f8f9fa",
+                      "secondary-fixed-dim": "#cec2d5",
+                      "on-tertiary-fixed-variant": "#3f4b30",
+                      "primary-fixed": "#c3e9f1",
+                      "surface-container-high": "#e7e8e9",
+                      "surface-container-highest": "#e1e3e4",
+                      "surface": "#f8f9fa",
+                      "surface-bright": "#f8f9fa",
+                      "outline-variant": "#c1c8c9",
+                      "on-surface-variant": "#41484a",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary": "#645b6b",
+                      "primary": "#41646b",
+                      "surface-tint": "#41646b",
+                      "on-primary-fixed-variant": "#284c53",
+                      "inverse-on-surface": "#f0f1f2",
+                      "on-primary-fixed": "#001f24",
+                      "on-background": "#191c1d",
+                      "inverse-surface": "#2e3132"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "8px",
+                      "xl": "12px",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "dialogue-spacing": "32px",
+                      "container-padding": "24px",
+                      "max-width-desktop": "800px",
+                      "element-gap": "16px"
+              },
+              "fontFamily": {
+                      "ui-label-sm": ["Plus Jakarta Sans"],
+                      "system-msg": ["Plus Jakarta Sans"],
+                      "display-name": ["Noto Serif SC"],
+                      "ui-label-lg": ["Plus Jakarta Sans"],
+                      "dialogue-main-mobile": ["Plus Jakarta Sans"],
+                      "dialogue-main": ["Plus Jakarta Sans"]
+              },
+              "fontSize": {
+                      "ui-label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "system-msg": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "display-name": ["24px", {"lineHeight": "32px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "ui-label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                      "dialogue-main-mobile": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "dialogue-main": ["18px", {"lineHeight": "1.8", "letterSpacing": "0.01em", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/30 transition-all duration-300">
+<div class="flex items-center justify-between px-container-padding h-16 w-full max-w-max-desktop mx-auto">
+<button aria-label="返回" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-variant/40 active:scale-95 transition-all text-on-surface">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-display-name text-display-name text-on-surface">API 设置</h1>
+<button class="px-4 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-ui-label-lg hover:opacity-80 active:scale-95 transition-all">
+                保存
+            </button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 pb-12 px-container-padding w-full max-w-max-desktop mx-auto">
+<!-- Decorative Background Element -->
+<div class="fixed inset-0 pointer-events-none -z-10 flex items-center justify-center opacity-20 overflow-hidden">
+
+</div>
+<section class="space-y-dialogue-spacing">
+<!-- Page Header/Description -->
+<div class="text-center space-y-2 mb-12">
+<p class="font-system-msg text-system-msg text-on-surface-variant/70 tracking-widest uppercase">Configuration</p>
+<div class="h-px w-12 bg-primary-container mx-auto"></div>
+</div>
+<!-- Form Section -->
+<div class="glass-panel bg-white/70 rounded-xl p-8 border border-outline-variant/20 shadow-sm transition-all hover:shadow-md">
+<form class="space-y-dialogue-spacing">
+<!-- OpenAI URL -->
+<div class="space-y-2">
+<label class="block font-ui-label-lg text-on-surface-variant ml-1">OpenAI URL</label>
+<input class="w-full bg-surface-container-lowest/50 border border-outline-variant/40 rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary-container focus:border-primary-container outline-none transition-all font-dialogue-main text-on-surface placeholder:text-on-surface-variant/30" placeholder="https://api.openai.com/v1" type="text"/>
+</div>
+<!-- API Key -->
+<div class="space-y-2">
+<label class="block font-ui-label-lg text-on-surface-variant ml-1">API Key</label>
+<div class="relative group">
+<input class="w-full bg-surface-container-lowest/50 border border-outline-variant/40 rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary-container focus:border-primary-container outline-none transition-all font-dialogue-main text-on-surface placeholder:text-on-surface-variant/30" id="apiKeyInput" placeholder="sk-..." type="password"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-on-surface transition-colors" onclick="togglePassword()" type="button">
+<span class="material-symbols-outlined" id="visibilityIcon">visibility_off</span>
+</button>
+</div>
+<p class="font-system-msg text-system-msg text-on-surface-variant/60 italic ml-1">您的 API 密钥将在本地加密存储</p>
+</div>
+<!-- Model Selection -->
+<div class="space-y-2">
+<label class="block font-ui-label-lg text-on-surface-variant ml-1">模型选择</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-lowest/50 border border-outline-variant/40 rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary-container focus:border-primary-container outline-none transition-all font-dialogue-main text-on-surface cursor-pointer">
+<option value="gpt-4o">gpt-4o (推荐)</option>
+<option value="gpt-4-turbo">gpt-4-turbo</option>
+<option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+<option value="claude-3-opus">claude-3-opus</option>
+<option value="claude-3-sonnet">claude-3-sonnet</option>
+</select>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant/50">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Test Connection Action -->
+<div class="pt-4 flex justify-center">
+<button class="flex items-center gap-2 px-8 py-2.5 border border-primary-container/40 bg-primary-container/10 text-primary font-ui-label-lg rounded-lg hover:bg-primary-container/20 active:scale-95 transition-all" id="testBtn" type="button">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+                            测试连接
+                        </button>
+</div>
+</form>
+</div>
+<!-- Footer Quote / Aesthetic Decoration -->
+<div class="mt-16 text-center">
+<p class="font-display-name text-on-surface-variant/40 italic text-ui-label-lg">
+                    “于静谧之中，聆听代码的低语。”
+                </p>
+</div>
+</section>
+</main>
+<!-- Success/Error Feedback Toast (Hidden by default) -->
+<div class="fixed bottom-12 left-1/2 -translate-x-1/2 glass-panel bg-surface-container-highest/90 border border-outline-variant/50 px-6 py-3 rounded-full shadow-lg opacity-0 transition-all translate-y-4 pointer-events-none z-[100]" id="toast">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" id="toastIcon">check_circle</span>
+<span class="font-ui-label-lg text-on-surface" id="toastMsg">连接成功</span>
+</div>
+</div>
+<script>
+        function togglePassword() {
+            const input = document.getElementById('apiKeyInput');
+            const icon = document.getElementById('visibilityIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.innerText = 'visibility';
+            } else {
+                input.type = 'password';
+                icon.innerText = 'visibility_off';
+            }
+        }
+
+        const testBtn = document.getElementById('testBtn');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+        const toastIcon = document.getElementById('toastIcon');
+
+        testBtn.addEventListener('click', () => {
+            testBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> 正在测试...';
+            testBtn.disabled = true;
+
+            setTimeout(() => {
+                testBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">bolt</span> 测试连接';
+                testBtn.disabled = false;
+                
+                // Show toast
+                toast.classList.remove('opacity-0', 'translate-y-4');
+                toast.classList.add('opacity-100', 'translate-y-0');
+                
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-4');
+                    toast.classList.remove('opacity-100', 'translate-y-0');
+                }, 3000);
+            }, 1500);
+        });
+
+        // Simple subtle animation for background glow movement
+        window.addEventListener('mousemove', (e) => {
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            // Interaction logic for a potential shader if handled in vanilla js
+        });
+    </script>
+</body></html>

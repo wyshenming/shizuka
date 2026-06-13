@@ -1,0 +1,231 @@
+<!DOCTYPE html><html class="light" lang="zh-CN" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>个人资料 - Shizuka UI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#284c53",
+                    "tertiary-fixed": "#dae8c3",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#e1e3e4",
+                    "primary-container": "#a5cad2",
+                    "inverse-primary": "#a8cdd5",
+                    "surface-container-high": "#e7e8e9",
+                    "on-surface": "#191c1d",
+                    "on-tertiary-fixed": "#141f08",
+                    "on-secondary-fixed-variant": "#4c4453",
+                    "on-background": "#191c1d",
+                    "secondary-container": "#ebdef2",
+                    "outline": "#71787a",
+                    "surface-tint": "#41646b",
+                    "on-surface-variant": "#41484a",
+                    "on-secondary": "#ffffff",
+                    "secondary": "#645b6b",
+                    "on-tertiary": "#ffffff",
+                    "surface-dim": "#d9dadb",
+                    "inverse-surface": "#2e3132",
+                    "surface": "#f8f9fa",
+                    "surface-container": "#edeeef",
+                    "on-secondary-fixed": "#1f1926",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed": "#001f24",
+                    "tertiary-container": "#bbc9a6",
+                    "primary": "#41646b",
+                    "tertiary": "#566246",
+                    "on-tertiary-container": "#495539",
+                    "error": "#ba1a1a",
+                    "tertiary-fixed-dim": "#becba8",
+                    "surface-container-highest": "#e1e3e4",
+                    "surface-container-low": "#f3f4f5",
+                    "surface-bright": "#f8f9fa",
+                    "on-primary-container": "#32565d",
+                    "on-tertiary-fixed-variant": "#3f4b30",
+                    "on-secondary-container": "#6a6171",
+                    "primary-fixed-dim": "#a8cdd5",
+                    "background": "#f8f9fa",
+                    "secondary-fixed": "#ebdef2",
+                    "outline-variant": "#c1c8c9",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "secondary-fixed-dim": "#cec2d5",
+                    "primary-fixed": "#c3e9f1",
+                    "on-error-container": "#93000a",
+                    "inverse-on-surface": "#f0f1f2"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "dialogue-spacing": "32px",
+                    "max-width-desktop": "800px",
+                    "container-padding": "24px",
+                    "unit": "4px",
+                    "element-gap": "16px"
+            },
+            "fontFamily": {
+                    "ui-label-lg": ["Plus Jakarta Sans"],
+                    "dialogue-main-mobile": ["Plus Jakarta Sans"],
+                    "display-name": ["Noto Serif SC"],
+                    "dialogue-main": ["Plus Jakarta Sans"],
+                    "system-msg": ["Plus Jakarta Sans"],
+                    "ui-label-sm": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "ui-label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                    "dialogue-main-mobile": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "display-name": ["24px", {"lineHeight": "32px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "dialogue-main": ["18px", {"lineHeight": "1.8", "letterSpacing": "0.01em", "fontWeight": "400"}],
+                    "system-msg": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "ui-label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f8f9fa;
+            color: #191c1d;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .serif-text { font-family: 'Noto Serif SC', serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .input-minimal {
+            border: none;
+            border-bottom: 1px solid #c1c8c9;
+            background: transparent;
+            transition: border-color 0.3s ease;
+        }
+        .input-minimal:focus {
+            outline: none;
+            border-bottom-color: #41646b;
+            box-shadow: none;
+        }
+        .page-transition {
+            animation: fadeIn 0.6s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-background min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/30 h-16">
+<div class="flex justify-between items-center px-container-padding h-full max-w-[800px] mx-auto">
+<button aria-label="Go Back" class="hover:bg-primary/10 p-2 rounded-full transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-primary">chevron_left</span>
+</button>
+<h1 class="font-display-name text-[18px] font-semibold text-on-surface tracking-tight">个人资料</h1>
+<button class="font-ui-label-lg text-primary hover:opacity-70 transition-opacity active:scale-95 duration-200">
+                保存
+            </button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 pb-12 px-container-padding max-w-[800px] mx-auto page-transition">
+<!-- Profile Header / Avatar -->
+<section class="flex flex-col items-center mb-12">
+<div class="relative group cursor-pointer">
+<div class="w-32 h-32 rounded-full overflow-hidden border-2 border-primary/20 p-1 bg-white shadow-sm transition-all duration-300 group-hover:shadow-md">
+<img alt="Avatar" class="w-full h-full object-cover rounded-full" data-alt="A high-quality, professional headshot of a young woman with a serene expression, set against a soft, sun-drenched minimalist interior. The lighting is warm and ethereal, highlighting the clean textures of the room. The overall aesthetic is calm and sophisticated, using a gentle palette of soft whites and muted teals that aligns with a modern Japanese minimalist design system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-EQIXmZNzbqI2Ws4rfG61Ob4H2G0x8J0d1EtmT4sRvaG55Z0SmmZAND25LtpYSa4J3JA92zQ-BnzA87SmGhbir3fwyTiPTSkSswcYGc0R18HXrWVGL7EMl3w22Wv9YxhW8Zpq3gG9oSriZpVAnwE4a2eumRABOGwnrU9ag9z017IoZa1IVz09MAduV8DcYmNGwQrHsGtJQMvuEK4Ew3lf5t1U1DIsARu9g4oqqXGflp0i64O6J0kFiAq7dCPIopIPKGwcUAX7Tag">
+</div>
+<div class="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</div>
+</div>
+<p class="mt-4 font-ui-label-sm text-on-surface-variant/60 tracking-wider">点击更换头像</p>
+</section>
+<!-- Edit Form -->
+<div class="space-y-dialogue-spacing">
+<!-- Name Field -->
+<div class="flex flex-col gap-2 group">
+<label class="font-display-name text-on-surface-variant/80 text-[14px] px-1">姓名</label>
+<input class="input-minimal w-full py-3 px-1 font-dialogue-main text-on-surface" placeholder="请输入您的姓名" type="text" value="静花">
+</div>
+<!-- Age Field -->
+<div class="flex flex-col gap-2 group">
+<label class="font-display-name text-on-surface-variant/80 text-[14px] px-1">年龄</label>
+<input class="input-minimal w-full py-3 px-1 font-dialogue-main text-on-surface" placeholder="请输入您的年龄" type="number" value="19">
+</div>
+<!-- Gender Selector -->
+<div class="flex flex-col gap-2 group">
+<label class="font-display-name text-on-surface-variant/80 text-[14px] px-1">性别</label>
+<div class="relative">
+<select class="input-minimal w-full py-3 px-1 font-dialogue-main text-on-surface appearance-none cursor-pointer">
+<option selected="" value="female">女</option>
+<option value="male">男</option>
+<option value="other">其他</option>
+<option value="secret">保密</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-outline-variant">
+                        unfold_more
+                    </span>
+</div>
+</div>
+<!-- Basic Info / Bio -->
+<div class="flex flex-col gap-2 group">
+<label class="font-display-name text-on-surface-variant/80 text-[14px] px-1">基本信息</label>
+<textarea class="input-minimal w-full py-3 px-1 font-dialogue-main text-on-surface resize-none leading-relaxed" placeholder="写一些关于你的故事吧..." rows="4">喜欢在午后的图书馆角落看书，享受宁静的时刻。对文字有着天然的亲近感，希望能在这里遇到志同道合的朋友。</textarea>
+</div>
+</div>
+<!-- Secondary Actions -->
+<div class="mt-16 pt-8 border-t border-outline-variant/20 flex flex-col items-center gap-6">
+<button class="flex items-center gap-2 text-primary hover:opacity-70 transition-opacity text-ui-label-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span class="">添加自定义字段</span>
+</button>
+<p class="font-ui-label-sm text-outline-variant text-center max-w-[280px]">
+                角色会在未来的故事中记住这些内容</p>
+</div>
+</main>
+<!-- Subtle Background Shader Effect -->
+<div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+
+</div>
+<script>
+        // Simple Interaction logic
+        document.querySelectorAll('.input-minimal').forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.querySelector('label').classList.replace('text-on-surface-variant/80', 'text-primary');
+            });
+            input.addEventListener('blur', () => {
+                input.parentElement.querySelector('label').classList.replace('text-primary', 'text-on-surface-variant/80');
+            });
+        });
+
+        // Mock Save Interaction
+        const saveBtn = document.querySelector('header button:last-child');
+        saveBtn.addEventListener('click', () => {
+            saveBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>';
+            setTimeout(() => {
+                saveBtn.innerText = '已保存';
+                setTimeout(() => { saveBtn.innerText = '保存'; }, 2000);
+            }, 800);
+        });
+    </script>
+
+
+
+
+</body></html>
