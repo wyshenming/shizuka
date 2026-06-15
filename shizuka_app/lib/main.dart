@@ -4,6 +4,8 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'api/chat_api.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
@@ -1123,8 +1125,15 @@ class ProfilePage extends StatelessWidget {
       ),
       trailing: TextButton(
         onPressed: () {},
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
         child: Text(
           '保存',
+          maxLines: 1,
+          softWrap: false,
           style: ShizukaText.labelLarge.copyWith(color: ShizukaColors.primary),
         ),
       ),
@@ -1261,8 +1270,167 @@ class AddFieldButton extends StatelessWidget {
   }
 }
 
-class ApiSettingsPage extends StatelessWidget {
+class ApiSettingsPage extends StatefulWidget {
   const ApiSettingsPage({super.key});
+
+  @override
+  State<ApiSettingsPage> createState() => _ApiSettingsPageState();
+}
+
+class _ApiSettingsPageState extends State<ApiSettingsPage> {
+  final TextEditingController _urlController = TextEditingController(
+    text: 'https://api.openai.com/v1',
+  );
+  final TextEditingController _apiKeyController = TextEditingController();
+  bool _testing = false;
+  String _selectedModel = 'gpt-4o';
+  List<String> _models = const [
+    'gpt-4o',
+    'gpt-4.1',
+    'gpt-4.1-mini',
+    'gpt-4o-mini',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    _apiKeyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await ApiSettingsStore.load();
+    final savedUrl = settings.url;
+    final savedApiKey = settings.apiKey;
+    final savedModel = settings.model;
+    final savedModels = settings.models;
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      if (savedUrl != null && savedUrl.isNotEmpty) {
+        _urlController.text = savedUrl;
+      }
+      if (savedApiKey != null) {
+        _apiKeyController.text = savedApiKey;
+      }
+      if (savedModels != null && savedModels.isNotEmpty) {
+        _models = savedModels;
+      }
+      if (savedModel != null && savedModel.isNotEmpty) {
+        if (!_models.contains(savedModel)) {
+          _models = [..._models, savedModel];
+        }
+        _selectedModel = savedModel;
+      }
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final baseUrl = _normalizeBaseUrl(_urlController.text);
+
+    if (baseUrl == null) {
+      _showMessage('请输入有效的 OpenAI URL');
+      return;
+    }
+
+    await ApiSettingsStore.save(
+      ApiSettings(
+        url: baseUrl,
+        apiKey: _apiKeyController.text.trim(),
+        model: _selectedModel,
+        models: _models,
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    _urlController.text = baseUrl;
+    _showMessage('保存成功');
+  }
+
+  Future<void> _testConnection() async {
+    final baseUrl = _normalizeBaseUrl(_urlController.text);
+    final apiKey = _apiKeyController.text.trim();
+
+    if (baseUrl == null) {
+      _showMessage('请输入有效的 OpenAI URL');
+      return;
+    }
+
+    if (apiKey.isEmpty) {
+      _showMessage('请填写 API Key');
+      return;
+    }
+
+    setState(() => _testing = true);
+    try {
+      final backend = ChatBackendFactory.create(
+        baseUrl: baseUrl,
+        apiKey: apiKey,
+      );
+      final fetchedModels = await backend.listModels();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        if (fetchedModels.isNotEmpty) {
+          _models = fetchedModels;
+          if (!_models.contains(_selectedModel)) {
+            _selectedModel = _models.first;
+          }
+        }
+      });
+      _showMessage('连接成功');
+    } catch (_) {
+      if (mounted) {
+        _showMessage('连接失败，请检查 URL 或密钥');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _testing = false);
+      }
+    }
+  }
+
+  String? _normalizeBaseUrl(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      return null;
+    }
+    return trimmed.endsWith('/')
+        ? trimmed.substring(0, trimmed.length - 1)
+        : trimmed;
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message, style: ShizukaText.labelLarge),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: ShizukaColors.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1275,9 +1443,16 @@ class ApiSettingsPage extends StatelessWidget {
         onTap: () => Navigator.pop(context),
       ),
       trailing: TextButton(
-        onPressed: () {},
+        onPressed: _saveSettings,
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
         child: Text(
           '保存',
+          maxLines: 1,
+          softWrap: false,
           style: ShizukaText.labelLarge.copyWith(color: ShizukaColors.primary),
         ),
       ),
@@ -1318,21 +1493,34 @@ class ApiSettingsPage extends StatelessWidget {
               ],
             ),
             child: Column(
-              children: const [
+              children: [
                 SoftFilledInput(
                   label: 'OpenAI URL',
                   hint: 'https://api.openai.com/v1',
+                  controller: _urlController,
                 ),
-                SizedBox(height: 32),
+                const SizedBox(height: 32),
                 SoftFilledInput(
                   label: 'API Key',
                   hint: 'sk-...',
                   obscure: true,
+                  controller: _apiKeyController,
                 ),
-                SizedBox(height: 32),
-                SoftFilledInput(label: '模型选择', hint: 'gpt-4o (推荐)'),
-                SizedBox(height: 28),
-                TestConnectionButton(),
+                const SizedBox(height: 32),
+                SoftModelDropdown(
+                  models: _models,
+                  value: _selectedModel,
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedModel = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 28),
+                TestConnectionButton(
+                  testing: _testing,
+                  onPressed: _testing ? null : _testConnection,
+                ),
               ],
             ),
           ),
@@ -1352,21 +1540,72 @@ class ApiSettingsPage extends StatelessWidget {
   }
 }
 
+class ApiSettings {
+  const ApiSettings({
+    required this.url,
+    required this.apiKey,
+    required this.model,
+    required this.models,
+  });
+
+  final String? url;
+  final String? apiKey;
+  final String? model;
+  final List<String>? models;
+}
+
+class ApiSettingsStore {
+  static const _channel = MethodChannel('com.shizuka.app/api_settings');
+  static ApiSettings? _fallback;
+
+  static Future<ApiSettings> load() async {
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>('load');
+      return ApiSettings(
+        url: result?['url'] as String?,
+        apiKey: result?['apiKey'] as String?,
+        model: result?['model'] as String?,
+        models: (result?['models'] as List?)?.whereType<String>().toList(),
+      );
+    } on MissingPluginException {
+      return _fallback ??
+          const ApiSettings(url: null, apiKey: null, model: null, models: null);
+    }
+  }
+
+  static Future<void> save(ApiSettings settings) async {
+    _fallback = settings;
+    try {
+      await _channel.invokeMethod<void>('save', {
+        'url': settings.url,
+        'apiKey': settings.apiKey,
+        'model': settings.model,
+        'models': settings.models,
+      });
+    } on MissingPluginException {
+      return;
+    }
+  }
+}
+
 class SoftFilledInput extends StatelessWidget {
   const SoftFilledInput({
     super.key,
     required this.label,
     required this.hint,
+    this.controller,
     this.obscure = false,
   });
 
   final String label;
   final String hint;
+  final TextEditingController? controller;
   final bool obscure;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         labelText: label,
@@ -1392,15 +1631,91 @@ class SoftFilledInput extends StatelessWidget {
   }
 }
 
+class SoftModelDropdown extends StatelessWidget {
+  const SoftModelDropdown({
+    super.key,
+    required this.models,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final List<String> models;
+  final String value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      isExpanded: true,
+      initialValue: models.contains(value) ? value : models.firstOrNull,
+      selectedItemBuilder: (context) => [
+        for (final model in models)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              model,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+            ),
+          ),
+      ],
+      items: [
+        for (final model in models)
+          DropdownMenuItem<String>(
+            value: model,
+            child: Text(
+              model,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+            ),
+          ),
+      ],
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: '模型选择',
+        labelStyle: ShizukaText.labelLarge.copyWith(
+          color: ShizukaColors.onSurfaceVariant,
+        ),
+        filled: true,
+        fillColor: ShizukaColors.surfaceContainerLowest.withValues(alpha: 0.5),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: ShizukaColors.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: ShizukaColors.primaryContainer),
+        ),
+      ),
+      dropdownColor: ShizukaColors.surface,
+      style: ShizukaText.dialogue.copyWith(color: ShizukaColors.onSurface),
+      iconEnabledColor: ShizukaColors.onSurfaceVariant,
+      borderRadius: BorderRadius.circular(12),
+    );
+  }
+}
+
 class TestConnectionButton extends StatelessWidget {
-  const TestConnectionButton({super.key});
+  const TestConnectionButton({
+    super.key,
+    required this.testing,
+    required this.onPressed,
+  });
+
+  final bool testing;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
-      onPressed: () {},
-      icon: const Icon(Icons.bolt, size: 20),
-      label: const Text('测试连接'),
+      onPressed: onPressed,
+      icon: Icon(testing ? Icons.refresh : Icons.bolt, size: 20),
+      label: Text(testing ? '正在测试...' : '测试连接'),
       style: OutlinedButton.styleFrom(
         foregroundColor: ShizukaColors.primary,
         backgroundColor: ShizukaColors.primaryContainer.withValues(alpha: 0.1),
@@ -1791,8 +2106,15 @@ class NewCharacterPage extends StatelessWidget {
       ),
       trailing: TextButton(
         onPressed: () {},
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
         child: Text(
           '保存',
+          maxLines: 1,
+          softWrap: false,
           style: ShizukaText.labelLarge.copyWith(color: ShizukaColors.primary),
         ),
       ),
