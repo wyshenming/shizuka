@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:file_selector/file_selector.dart';
@@ -5,9 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'api/chat_api.dart';
+import 'storage/local_data_store.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  LocalDataStore.ensureStructure();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: ShizukaColors.surface,
@@ -138,15 +142,6 @@ class ShizukaText {
     fontWeight: FontWeight.w400,
   );
 }
-
-const _avatarAyane =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuBOQ6MNr4jpNI_EbHaYpHU-Upy_-0o06WYbiUTbhCHJTT9NufTW-mLoFv7ORBht6ivbQ13Z7xiwuZIThRJO7X7NyenNBUcEd2PS2echMZuj0BHFvaFRCBLzxPWEnd2nDb53ZAdXp4wuQkEXEZj2gODmPXGUoN4MRC-QyDfHskzgtxNfuIhcXBlPn_Qx9pxxdQ3aqdZE9mKiBfJNCqYOLmmknyuhpl9Uc3v5eex-oGpZtwKs4eYIWgZ2RVmxRre_FdkGjSNozdofng8';
-const _avatarSousuke =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAb0KqjHQYRSOszbIjn2Ort7MTVaXOOLuL26S-VXXHsqyd4arh0nOD4ioOGRHzmH7nS3I_9rqh1jrqL_VoHPJcqYtxPxl2nquJBgQzyO2v6J0b3YOOFAMB8p5_8XyHAMVeWpDpUlvBX9TUxMINPLH4ZIZ0V34ORPdwZVQUVz4Q_HG82cdZSqAUdSav52n02-7JRe1Et3A2eVijIqkGxsXLQzHX3tRKSNSz1DkdiCLOSI9gG28kZz0BrP9v5XmH94f8tWW2HDRjdvjM';
-const _avatarYui =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDWCrKGRsS0pAAo_PyXk7ZTY6nGFig61BE_Suu9TmxsVsxk33rkjz2ohFFq1tIOxqqr5EIY-usDza-pjzAD-57r9hEt_is8kFI7cwusWrl7ali4nzo6B1ozaGuWhPAECm7cs5LZgXOdN0ruK5r9lgUfBIvr5WBnYVBqi66YHI9WlpX6p7JoO9jD_72244Em3GenHn48tGq0MJA6rdbApLlVcqNpexj76WNeGNnyE76H2hRwl_obLD4gHoBdrzvKv01ZPRdgFsrvahk';
-const _avatarRui =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuB2857dp382p-feA4dZi1DR7KyY7sOVQmPrg8Tfys54o8iH1MgBc-v-fVp3xVF3LjH0kqUQXxdq87x_uByzqco__OE6_3Hlp6OmN86Y2xQhBkUFS-RTQ81LhzVX2wU2w-xC40pXqzdwEbyqoAhQl8bwlVJPti1KSE6qezh4KQg4NXdYtQaxSdaeaVodtUIOU-DX-NEvMdX02G9Cted72y8q-ArPySiy9g_jwjV919lJ4ZVnhWz-TXI-JE0Qi_22zwLZfZpDVwNoV9U';
 
 class GlassHeader extends StatelessWidget implements PreferredSizeWidget {
   const GlassHeader({
@@ -412,14 +407,10 @@ class Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius ?? size / 2),
-      child: Image.network(
-        url,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => Container(
+    if (url.isEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(radius ?? size / 2),
+        child: Container(
           width: size,
           height: size,
           color: ShizukaColors.surfaceContainerHigh,
@@ -429,55 +420,107 @@ class Avatar extends StatelessWidget {
             size: size / 2,
           ),
         ),
-      ),
+      );
+    }
+
+    final fallback = Container(
+      width: size,
+      height: size,
+      color: ShizukaColors.surfaceContainerHigh,
+      child: Icon(Icons.person, color: ShizukaColors.outline, size: size / 2),
+    );
+
+    final image = url.startsWith('http')
+        ? Image.network(
+            url,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => fallback,
+          )
+        : Image.file(
+            File(url),
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => fallback,
+          );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius ?? size / 2),
+      child: image,
     );
   }
 }
 
-class ChatHomePage extends StatelessWidget {
+class ChatHomePage extends StatefulWidget {
   const ChatHomePage({super.key});
 
   @override
+  State<ChatHomePage> createState() => _ChatHomePageState();
+}
+
+class _ChatHomePageState extends State<ChatHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    ChatSessionStore.instance.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    ChatSessionStore.instance.removeListener(_refresh);
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _openSession(ChatSession session) async {
+    final character = await CharacterStore.load(session.characterId);
+    if (!mounted || character == null) {
+      return;
+    }
+    await Navigator.pushNamed(
+      context,
+      AppRoutes.dialogue,
+      arguments: character,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final sessions = ChatSessionStore.instance.sessions;
     return ShizukaScaffold(
       title: '消息',
       currentTab: 0,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 28),
         children: [
-          ChatListTile(
-            name: '绫音 (Ayane)',
-            time: '刚刚',
-            message: '“今天外面的阳光很好，你想一起去散步吗？”',
-            avatar: _avatarAyane,
-            online: true,
-            onTap: () => Navigator.pushNamed(context, AppRoutes.dialogue),
-          ),
-          const SizedBox(height: 16),
-          ChatListTile(
-            name: '苍介 (Sousuke)',
-            time: '昨天',
-            message: '“那本书的结局，确实让人意外。我还需要些时间消化。”',
-            avatar: _avatarSousuke,
-            unread: true,
-            onTap: () => Navigator.pushNamed(context, AppRoutes.dialogue),
-          ),
-          const SizedBox(height: 16),
-          ChatListTile(
-            name: '结衣 (Yui)',
-            time: '星期二',
-            message: '“谢谢你听我抱怨，感觉好多了！”',
-            avatar: _avatarYui,
-            onTap: () => Navigator.pushNamed(context, AppRoutes.dialogue),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            '没有更多回忆了...',
-            textAlign: TextAlign.center,
-            style: ShizukaText.system.copyWith(
-              color: ShizukaColors.outline.withValues(alpha: 0.6),
+          if (sessions.isEmpty) ...[
+            const SizedBox(height: 120),
+            Text(
+              '还没有新的消息。',
+              textAlign: TextAlign.center,
+              style: ShizukaText.system.copyWith(
+                color: ShizukaColors.outline.withValues(alpha: 0.6),
+              ),
             ),
-          ),
+          ] else ...[
+            for (final session in sessions) ...[
+              ChatListTile(
+                name: session.characterName,
+                time: '',
+                message: session.recentMessage,
+                avatar: session.characterAvatar,
+                onTap: () => _openSession(session),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ],
         ],
       ),
     );
@@ -612,6 +655,224 @@ class ChatListTile extends StatelessWidget {
   }
 }
 
+class CharacterProfile {
+  const CharacterProfile({
+    required this.id,
+    required this.name,
+    required this.avatar,
+    required this.gender,
+    required this.age,
+    required this.description,
+    required this.persona,
+    required this.background,
+    required this.behaviorPreference,
+    required this.dialogueExamples,
+    required this.firstMessage,
+    required this.tags,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String name;
+  final String avatar;
+  final String gender;
+  final String age;
+  final String description;
+  final String persona;
+  final String background;
+  final String behaviorPreference;
+  final String dialogueExamples;
+  final String firstMessage;
+  final List<String> tags;
+  final String createdAt;
+  final String updatedAt;
+
+  factory CharacterProfile.fromJson(Map<String, dynamic> json) {
+    final now = DateTime.now().toIso8601String();
+    return CharacterProfile(
+      id:
+          json['id'] as String? ??
+          DateTime.now().microsecondsSinceEpoch.toString(),
+      name: _repairImportedText(json['name'] as String? ?? ''),
+      avatar: json['avatar'] as String? ?? '',
+      gender: _repairImportedText(json['gender'] as String? ?? ''),
+      age: _repairImportedText(json['age'] as String? ?? ''),
+      description: _repairImportedText(json['description'] as String? ?? ''),
+      persona: _repairImportedText(json['persona'] as String? ?? ''),
+      background: _repairImportedText(json['background'] as String? ?? ''),
+      behaviorPreference: _repairImportedText(
+        json['behaviorPreference'] as String? ?? '',
+      ),
+      dialogueExamples: _repairImportedText(
+        json['dialogueExamples'] as String? ?? '',
+      ),
+      firstMessage: _repairImportedText(json['firstMessage'] as String? ?? ''),
+      tags: (json['tags'] as List?)?.whereType<String>().toList() ?? const [],
+      createdAt: json['createdAt'] as String? ?? now,
+      updatedAt: json['updatedAt'] as String? ?? now,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'avatar': avatar,
+    'gender': gender,
+    'age': age,
+    'description': description,
+    'persona': persona,
+    'background': background,
+    'behaviorPreference': behaviorPreference,
+    'dialogueExamples': dialogueExamples,
+    'firstMessage': firstMessage,
+    'tags': tags,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+  };
+
+  static String _repairImportedText(String value) {
+    if (!RegExp(r'[ÃÂÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßà-ÿ]').hasMatch(value)) {
+      return value;
+    }
+
+    try {
+      final repaired = utf8.decode(latin1.encode(value));
+      return repaired.contains('�') ? value : repaired;
+    } catch (_) {
+      return value;
+    }
+  }
+}
+
+class CharacterStore {
+  static const _directory = 'characters';
+
+  static Future<void> save(CharacterProfile character) async {
+    await LocalDataStore.writeMap(
+      '$_directory/${character.id}.json',
+      character.toJson(),
+    );
+  }
+
+  static Future<void> delete(String id) async {
+    await LocalDataStore.deleteFile('$_directory/$id.json');
+  }
+
+  static Future<CharacterProfile?> load(String id) async {
+    final json = await LocalDataStore.readMap('$_directory/$id.json');
+    if (json == null) {
+      return null;
+    }
+    return CharacterProfile.fromJson(json);
+  }
+
+  static Future<List<CharacterProfile>> loadAll() async {
+    final paths = await LocalDataStore.listFiles(_directory);
+    final characters = <CharacterProfile>[];
+    for (final path in paths.where((path) => path.endsWith('.json'))) {
+      final json = await LocalDataStore.readMap(path);
+      if (json != null) {
+        characters.add(CharacterProfile.fromJson(json));
+      }
+    }
+    characters.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return characters;
+  }
+}
+
+class ChatSession {
+  const ChatSession({
+    required this.characterId,
+    required this.characterName,
+    required this.characterAvatar,
+    required this.recentMessage,
+  });
+
+  final String characterId;
+  final String characterName;
+  final String characterAvatar;
+  final String recentMessage;
+}
+
+class DialogueMessage {
+  const DialogueMessage({required this.role, required this.content});
+
+  final ChatRole role;
+  final String content;
+
+  bool get mine => role == ChatRole.user;
+}
+
+class ChatSessionStore extends ChangeNotifier {
+  ChatSessionStore._();
+
+  static final ChatSessionStore instance = ChatSessionStore._();
+
+  final Map<String, CharacterProfile> _characters = {};
+  final Map<String, List<DialogueMessage>> _messages = {};
+  final Map<String, DateTime> _updatedAt = {};
+
+  List<ChatSession> get sessions {
+    final ordered = _characters.values.toList()
+      ..sort((a, b) {
+        final aTime =
+            _updatedAt[a.id] ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime =
+            _updatedAt[b.id] ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
+
+    return [
+      for (final character in ordered)
+        ChatSession(
+          characterId: character.id,
+          characterName: character.name.isEmpty ? '未命名角色' : character.name,
+          characterAvatar: character.avatar,
+          recentMessage: _lastMessageText(character.id),
+        ),
+    ];
+  }
+
+  String _lastMessageText(String characterId) {
+    final messages = _messages[characterId];
+    if (messages == null || messages.isEmpty) {
+      return '';
+    }
+    return messages.last.content;
+  }
+
+  List<DialogueMessage> messagesFor(String characterId) {
+    return List.unmodifiable(_messages[characterId] ?? const []);
+  }
+
+  void touchCharacter(CharacterProfile character) {
+    _characters[character.id] = character;
+    _updatedAt[character.id] = DateTime.now();
+    notifyListeners();
+  }
+
+  void ensureOpeningMessage(CharacterProfile character) {
+    touchCharacter(character);
+    final opening = character.firstMessage.trim();
+    if (opening.isEmpty) {
+      return;
+    }
+    final messages = _messages.putIfAbsent(character.id, () => []);
+    if (messages.isEmpty) {
+      messages.add(DialogueMessage(role: ChatRole.assistant, content: opening));
+      _updatedAt[character.id] = DateTime.now();
+      notifyListeners();
+    }
+  }
+
+  void addMessage(String characterId, DialogueMessage message) {
+    _messages.putIfAbsent(characterId, () => []).add(message);
+    _updatedAt[characterId] = DateTime.now();
+    notifyListeners();
+  }
+}
+
 class EncounterPage extends StatefulWidget {
   const EncounterPage({super.key});
 
@@ -621,6 +882,110 @@ class EncounterPage extends StatefulWidget {
 
 class _EncounterPageState extends State<EncounterPage> {
   bool _menuOpen = false;
+  List<CharacterProfile> _characters = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCharacters();
+  }
+
+  Future<void> _loadCharacters() async {
+    final characters = await CharacterStore.loadAll();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _characters = characters);
+  }
+
+  Future<void> _editCharacter(CharacterProfile character) async {
+    await Navigator.pushNamed(
+      context,
+      AppRoutes.newCharacter,
+      arguments: character,
+    );
+    if (mounted) {
+      await _loadCharacters();
+    }
+  }
+
+  Future<void> _openCharacterDialogue(CharacterProfile character) async {
+    ChatSessionStore.instance.ensureOpeningMessage(character);
+    await Navigator.pushNamed(
+      context,
+      AppRoutes.dialogue,
+      arguments: character,
+    );
+  }
+
+  Future<void> _confirmDeleteCharacter(CharacterProfile character) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: ShizukaColors.surface,
+        content: Text('确定要删除这个角色吗？', style: ShizukaText.labelLarge),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              '删除',
+              style: ShizukaText.labelLarge.copyWith(
+                color: ShizukaColors.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    await CharacterStore.delete(character.id);
+    if (mounted) {
+      await _loadCharacters();
+    }
+  }
+
+  Future<void> _exportCharacter(CharacterProfile character) async {
+    final fileName = _safeExportFileName(character.name);
+    try {
+      await LocalDataStore.exportMapToDownloads(
+        fileName: fileName,
+        value: character.toJson(),
+      );
+      if (mounted) {
+        _showEncounterMessage('角色已导出到 Download 文件夹');
+      }
+    } catch (_) {
+      if (mounted) {
+        _showEncounterMessage('导出失败，请稍后再试');
+      }
+    }
+  }
+
+  String _safeExportFileName(String name) {
+    final cleaned = name.trim().replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    return '${cleaned.isEmpty ? '角色' : cleaned}.json';
+  }
+
+  void _showEncounterMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message, style: ShizukaText.labelLarge),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: ShizukaColors.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+  }
 
   void _toggleMenu() {
     setState(() => _menuOpen = !_menuOpen);
@@ -634,15 +999,42 @@ class _EncounterPageState extends State<EncounterPage> {
 
   Future<void> _openCharacterFilePicker() async {
     _closeMenu();
-    await openFile(
+    final file = await openFile(
       acceptedTypeGroups: const [
         XTypeGroup(
           label: '角色卡',
-          extensions: ['png', 'json'],
-          mimeTypes: ['image/png', 'application/json'],
+          extensions: ['json'],
+          mimeTypes: ['application/json'],
         ),
       ],
     );
+
+    if (file == null) {
+      return;
+    }
+
+    try {
+      final content = utf8.decode(
+        await file.readAsBytes(),
+        allowMalformed: true,
+      );
+      final decoded = jsonDecode(content.replaceFirst('\uFEFF', ''));
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Invalid character json.');
+      }
+
+      final character = CharacterProfile.fromJson(decoded);
+      await CharacterStore.save(character);
+      if (!mounted) {
+        return;
+      }
+      await _loadCharacters();
+      _showEncounterMessage('角色导入成功');
+    } catch (_) {
+      if (mounted) {
+        _showEncounterMessage('导入失败，请检查 json 文件');
+      }
+    }
   }
 
   @override
@@ -705,37 +1097,29 @@ class _EncounterPageState extends State<EncounterPage> {
               ),
               const SizedBox(height: 34),
               Text(
-                '在宁静的午后，聆听他们的故事。',
+                _characters.isEmpty ? '还没有遇见任何角色。' : '在宁静的午后，聆听他们的故事',
                 textAlign: TextAlign.center,
                 style: ShizukaText.labelLarge.copyWith(
                   color: ShizukaColors.onSurfaceVariant.withValues(alpha: 0.8),
                 ),
               ),
-              const SizedBox(height: 44),
-              CharacterCard(
-                name: '夏织',
-                tag: '温柔',
-                desc: '在宁静的午后，聆听她的故事。',
-                avatar: _avatarAyane,
-              ),
-              CharacterCard(
-                name: '苍介',
-                tag: '冷静',
-                desc: '智慧与理性的化身，静候交流。',
-                avatar: _avatarSousuke,
-              ),
-              CharacterCard(
-                name: '阳子',
-                tag: '开朗',
-                desc: '如阳光般灿烂，带给你无尽活力。',
-                avatar: _avatarYui,
-              ),
-              CharacterCard(
-                name: '雪绪',
-                tag: '神秘',
-                desc: '月光下的秘密，等待你来揭开。',
-                avatar: _avatarRui,
-              ),
+              if (_characters.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                for (final character in _characters)
+                  CharacterCard(
+                    name: character.name.isEmpty ? '未命名角色' : character.name,
+                    tag: character.gender.isEmpty ? '角色' : character.gender,
+                    desc: character.description,
+                    avatar: character.avatar,
+                    fallbackText: character.name.isEmpty
+                        ? ''
+                        : character.name.characters.first,
+                    onTap: () => _openCharacterDialogue(character),
+                    onEdit: () => _editCharacter(character),
+                    onDelete: () => _confirmDeleteCharacter(character),
+                    onExport: () => _exportCharacter(character),
+                  ),
+              ],
             ],
           ),
           if (_menuOpen) ...[
@@ -778,7 +1162,10 @@ class _EncounterPageState extends State<EncounterPage> {
                   child: EncounterPopupMenu(
                     onNewCharacter: () {
                       _closeMenu();
-                      Navigator.pushNamed(context, AppRoutes.newCharacter);
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.newCharacter,
+                      ).then((_) => _loadCharacters());
                     },
                     onImportCharacter: _openCharacterFilePicker,
                   ),
@@ -892,92 +1279,163 @@ class CharacterCard extends StatelessWidget {
     required this.tag,
     required this.desc,
     required this.avatar,
+    required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onExport,
+    this.fallbackText = '',
   });
 
   final String name;
   final String tag;
   final String desc;
   final String avatar;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onExport;
+  final String fallbackText;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: ShizukaColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: ShizukaColors.outlineVariant.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            if (avatar.isEmpty)
+              CharacterInitialAvatar(text: fallbackText, size: 80)
+            else
+              Avatar(url: avatar, size: 80, radius: 16),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        _compactCharacterName(name),
+                        style: ShizukaText.displaySmall.copyWith(
+                          color: ShizukaColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: ShizukaColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          tag,
+                          style: ShizukaText.labelSmall.copyWith(
+                            fontSize: 10,
+                            color: ShizukaColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    desc,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: ShizukaText.labelSmall.copyWith(
+                      color: ShizukaColors.onSurfaceVariant.withValues(
+                        alpha: 0.7,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              children: [
+                Row(
+                  children: [
+                    _SmallRoundAction(
+                      icon: Icons.edit_outlined,
+                      color: ShizukaColors.primary,
+                      onTap: onEdit,
+                      size: 34,
+                      iconSize: 18,
+                    ),
+                    const SizedBox(width: 6),
+                    _SmallRoundAction(
+                      icon: Icons.delete_outline,
+                      color: ShizukaColors.error,
+                      onTap: onDelete,
+                      size: 34,
+                      iconSize: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                _SmallRoundAction(
+                  icon: Icons.file_download_outlined,
+                  color: ShizukaColors.primary,
+                  onTap: onExport,
+                  size: 34,
+                  iconSize: 18,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _compactCharacterName(String value) {
+    final chars = value.characters.toList();
+    if (chars.length <= 3) {
+      return value;
+    }
+    return '${chars.take(3).join()}...';
+  }
+}
+
+class CharacterInitialAvatar extends StatelessWidget {
+  const CharacterInitialAvatar({
+    super.key,
+    required this.text,
+    required this.size,
+  });
+
+  final String text;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: ShizukaColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: ShizukaColors.outlineVariant.withValues(alpha: 0.2),
-        ),
+        color: ShizukaColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        children: [
-          Avatar(url: avatar, size: 80, radius: 16),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      name,
-                      style: ShizukaText.displaySmall.copyWith(
-                        color: ShizukaColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: ShizukaColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        tag,
-                        style: ShizukaText.labelSmall.copyWith(
-                          fontSize: 10,
-                          color: ShizukaColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  desc,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: ShizukaText.labelSmall.copyWith(
-                    color: ShizukaColors.onSurfaceVariant.withValues(
-                      alpha: 0.7,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              _SmallRoundAction(
-                icon: Icons.edit_outlined,
-                color: ShizukaColors.primary,
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRoutes.newCharacter),
-              ),
-              const SizedBox(width: 8),
-              _SmallRoundAction(
-                icon: Icons.delete_outline,
-                color: ShizukaColors.error,
-                onTap: () {},
-              ),
-            ],
-          ),
-        ],
+      alignment: Alignment.center,
+      child: Text(
+        text.isEmpty ? '角' : text,
+        style: ShizukaText.displaySmall.copyWith(
+          color: ShizukaColors.primary,
+          fontSize: 24,
+        ),
       ),
     );
   }
@@ -988,32 +1446,70 @@ class _SmallRoundAction extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.onTap,
+    this.size = 40,
+    this.iconSize = 20,
   });
 
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+  final double size;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
       onPressed: onTap,
-      icon: Icon(icon, size: 20),
+      icon: Icon(icon, size: iconSize),
       style: IconButton.styleFrom(
         backgroundColor: ShizukaColors.surface.withValues(alpha: 0.8),
         foregroundColor: color,
-        fixedSize: const Size(40, 40),
+        fixedSize: Size(size, size),
         shape: const CircleBorder(side: BorderSide(color: Color(0x4DC1C8C9))),
       ),
     );
   }
 }
 
-class MinePage extends StatelessWidget {
+class MinePage extends StatefulWidget {
   const MinePage({super.key});
 
   @override
+  State<MinePage> createState() => _MinePageState();
+}
+
+class _MinePageState extends State<MinePage> {
+  UserProfile _profile = UserProfile.defaults;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final profile = await ProfileStore.load();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _profile = profile);
+  }
+
+  Future<void> _openProfile() async {
+    await Navigator.pushNamed(context, AppRoutes.profile);
+    if (mounted) {
+      await _loadProfile();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final displayName = _profile.name.trim();
+    final hasBasicProfile =
+        _profile.name.trim().isNotEmpty &&
+        _profile.age.trim().isNotEmpty &&
+        _profile.gender.trim().isNotEmpty;
+
     return ShizukaScaffold(
       title: '静谧之声',
       currentTab: 2,
@@ -1022,12 +1518,15 @@ class MinePage extends StatelessWidget {
         children: [
           Column(
             children: [
-              Avatar(url: _avatarAyane, size: 96),
+              Avatar(url: _profile.avatarUrl, size: 96),
               const SizedBox(height: 24),
-              Text('流浪的旅人', style: ShizukaText.display),
+              Text(
+                displayName.isEmpty ? '未设置名称' : displayName,
+                style: ShizukaText.display,
+              ),
               const SizedBox(height: 8),
               Text(
-                '在静谧中寻找故事的回声',
+                hasBasicProfile ? '在静谧中寻找故事的回声' : '个人资料未填写',
                 style: ShizukaText.system.copyWith(
                   color: ShizukaColors.onSurfaceVariant.withValues(alpha: 0.7),
                   letterSpacing: 0.6,
@@ -1044,8 +1543,7 @@ class MinePage extends StatelessWidget {
                   MineMenuItem(
                     icon: Icons.manage_accounts_outlined,
                     label: '个人资料',
-                    onTap: () =>
-                        Navigator.pushNamed(context, AppRoutes.profile),
+                    onTap: _openProfile,
                   ),
                   MineMenuItem(
                     icon: Icons.tune_rounded,
@@ -1110,8 +1608,139 @@ class MineMenuItem extends StatelessWidget {
   }
 }
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final TextEditingController _nameController = TextEditingController(text: '');
+  final TextEditingController _ageController = TextEditingController(text: '');
+  final TextEditingController _genderController = TextEditingController(
+    text: '',
+  );
+  final TextEditingController _bioController = TextEditingController(text: '');
+  final List<ProfileCustomFieldController> _customFields = [];
+  String _avatarUrl = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _ageController.dispose();
+    _genderController.dispose();
+    _bioController.dispose();
+    for (final field in _customFields) {
+      field.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _loadProfile() async {
+    final profile = await ProfileStore.load();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _nameController.text = profile.name;
+      _ageController.text = profile.age;
+      _genderController.text = profile.gender;
+      _bioController.text = profile.bio;
+      _avatarUrl = profile.avatarUrl;
+      for (final field in _customFields) {
+        field.dispose();
+      }
+      _customFields
+        ..clear()
+        ..addAll([
+          for (final field in profile.customFields)
+            ProfileCustomFieldController.fromField(field),
+        ]);
+    });
+  }
+
+  Future<void> _saveProfile() async {
+    await ProfileStore.save(
+      UserProfile(
+        name: _nameController.text.trim(),
+        age: _ageController.text.trim(),
+        gender: _genderController.text.trim(),
+        bio: _bioController.text.trim(),
+        avatarUrl: _avatarUrl,
+        customFields: [
+          for (final field in _customFields)
+            ProfileCustomField(
+              label: field.labelController.text.trim(),
+              value: field.valueController.text.trim(),
+            ),
+        ],
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('保存成功', style: ShizukaText.labelLarge),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: ShizukaColors.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+  }
+
+  Future<void> _chooseAvatar() async {
+    final file = await openFile(
+      acceptedTypeGroups: [
+        XTypeGroup(
+          label: 'Images',
+          extensions: ['png', 'jpg', 'jpeg', 'webp'],
+          mimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+        ),
+      ],
+    );
+
+    if (file == null || !mounted) {
+      return;
+    }
+
+    final extension = file.name.contains('.')
+        ? file.name.split('.').last.toLowerCase()
+        : 'png';
+    final savedPath = await LocalDataStore.writeBytes(
+      'profile_avatar.$extension',
+      await file.readAsBytes(),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _avatarUrl = savedPath ?? file.path);
+  }
+
+  void _addCustomField() {
+    setState(() {
+      _customFields.add(ProfileCustomFieldController(label: '', value: ''));
+    });
+  }
+
+  void _removeCustomField(ProfileCustomFieldController field) {
+    setState(() => _customFields.remove(field));
+    field.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1124,7 +1753,7 @@ class ProfilePage extends StatelessWidget {
         onTap: () => Navigator.pop(context),
       ),
       trailing: TextButton(
-        onPressed: () {},
+        onPressed: _saveProfile,
         style: TextButton.styleFrom(
           padding: EdgeInsets.zero,
           minimumSize: Size.zero,
@@ -1139,21 +1768,43 @@ class ProfilePage extends StatelessWidget {
       ),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-        children: const [
-          ProfileAvatarBlock(),
-          SizedBox(height: 48),
-          MinimalInput(label: '姓名', initialValue: '静花'),
-          MinimalInput(label: '年龄', initialValue: '19'),
-          MinimalInput(label: '性别', initialValue: '女'),
+        children: [
+          ProfileAvatarBlock(avatarUrl: _avatarUrl, onTap: _chooseAvatar),
+          const SizedBox(height: 48),
+          MinimalInput(
+            label: '姓名',
+            initialValue: '',
+            hintText: '请输入姓名',
+            controller: _nameController,
+          ),
+          MinimalInput(
+            label: '年龄',
+            initialValue: '',
+            hintText: '请输入年龄',
+            controller: _ageController,
+          ),
+          MinimalInput(
+            label: '性别',
+            initialValue: '',
+            hintText: '请输入性别',
+            controller: _genderController,
+          ),
           MinimalInput(
             label: '基本信息',
-            initialValue: '喜欢在午后的图书馆角落看书，享受宁静的时刻。对文字有着天然的亲近感，希望能在这里遇到志同道合的朋友。',
+            initialValue: '',
+            hintText: '请输入个人简介',
+            controller: _bioController,
             maxLines: 4,
           ),
-          SizedBox(height: 32),
-          Center(child: AddFieldButton()),
-          SizedBox(height: 20),
-          Center(
+          for (final field in _customFields)
+            ProfileCustomFieldEditor(
+              field: field,
+              onDelete: () => _removeCustomField(field),
+            ),
+          const SizedBox(height: 32),
+          Center(child: AddFieldButton(onPressed: _addCustomField)),
+          const SizedBox(height: 20),
+          const Center(
             child: Text(
               '角色会在未来的故事中记住这些内容',
               textAlign: TextAlign.center,
@@ -1166,41 +1817,157 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
+class UserProfile {
+  const UserProfile({
+    required this.name,
+    required this.age,
+    required this.gender,
+    required this.bio,
+    required this.avatarUrl,
+    required this.customFields,
+  });
+
+  final String name;
+  final String age;
+  final String gender;
+  final String bio;
+  final String avatarUrl;
+  final List<ProfileCustomField> customFields;
+
+  static const defaults = UserProfile(
+    name: '',
+    age: '',
+    gender: '',
+    bio: '',
+    avatarUrl: '',
+    customFields: [],
+  );
+
+  factory UserProfile.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return defaults;
+    }
+
+    return UserProfile(
+      name: json['name'] as String? ?? defaults.name,
+      age: json['age'] as String? ?? defaults.age,
+      gender: json['gender'] as String? ?? defaults.gender,
+      bio: json['bio'] as String? ?? defaults.bio,
+      avatarUrl: json['avatarUrl'] as String? ?? defaults.avatarUrl,
+      customFields:
+          (json['customFields'] as List?)
+              ?.whereType<Map>()
+              .map(
+                (field) => ProfileCustomField.fromJson(
+                  Map<String, dynamic>.from(field),
+                ),
+              )
+              .toList() ??
+          defaults.customFields,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'age': age,
+    'gender': gender,
+    'bio': bio,
+    'avatarUrl': avatarUrl,
+    'customFields': [for (final field in customFields) field.toJson()],
+  };
+}
+
+class ProfileCustomField {
+  const ProfileCustomField({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  factory ProfileCustomField.fromJson(Map<String, dynamic> json) {
+    return ProfileCustomField(
+      label: json['label'] as String? ?? '',
+      value: json['value'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'label': label, 'value': value};
+}
+
+class ProfileCustomFieldController {
+  ProfileCustomFieldController({required String label, required String value})
+    : labelController = TextEditingController(text: label),
+      valueController = TextEditingController(text: value);
+
+  factory ProfileCustomFieldController.fromField(ProfileCustomField field) {
+    return ProfileCustomFieldController(label: field.label, value: field.value);
+  }
+
+  final TextEditingController labelController;
+  final TextEditingController valueController;
+
+  void dispose() {
+    labelController.dispose();
+    valueController.dispose();
+  }
+}
+
+class ProfileStore {
+  static const _path = 'profile.json';
+
+  static Future<UserProfile> load() async {
+    return UserProfile.fromJson(await LocalDataStore.readMap(_path));
+  }
+
+  static Future<void> save(UserProfile profile) async {
+    await LocalDataStore.writeMap(_path, profile.toJson());
+  }
+}
+
 class ProfileAvatarBlock extends StatelessWidget {
-  const ProfileAvatarBlock({super.key});
+  const ProfileAvatarBlock({
+    super.key,
+    required this.avatarUrl,
+    required this.onTap,
+  });
+
+  final String avatarUrl;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: ShizukaColors.primary.withValues(alpha: 0.2),
-                  width: 2,
-                ),
-              ),
-              child: const Avatar(url: _avatarAyane, size: 128),
-            ),
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: const BoxDecoration(
-                  color: ShizukaColors.primary,
+        GestureDetector(
+          onTap: onTap,
+          child: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: ShizukaColors.primary.withValues(alpha: 0.2),
+                    width: 2,
+                  ),
                 ),
-                child: const Icon(Icons.edit, color: Colors.white, size: 18),
+                child: Avatar(url: avatarUrl, size: 128),
               ),
-            ),
-          ],
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: const BoxDecoration(
+                    color: ShizukaColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.edit, color: Colors.white, size: 18),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         Text(
@@ -1220,23 +1987,36 @@ class MinimalInput extends StatelessWidget {
     super.key,
     required this.label,
     required this.initialValue,
+    this.hintText,
+    this.controller,
     this.maxLines = 1,
+    this.maxLength,
   });
 
   final String label;
   final String initialValue;
+  final String? hintText;
+  final TextEditingController? controller;
   final int maxLines;
+  final int? maxLength;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 32),
       child: TextFormField(
-        initialValue: initialValue,
+        controller: controller,
+        initialValue: controller == null ? initialValue : null,
         maxLines: maxLines,
+        maxLength: maxLength,
+        inputFormatters: maxLength == null
+            ? null
+            : [LengthLimitingTextInputFormatter(maxLength)],
         style: ShizukaText.dialogue.copyWith(color: ShizukaColors.onSurface),
         decoration: InputDecoration(
           labelText: label,
+          hintText: hintText,
+          counterText: '',
           labelStyle: ShizukaText.displaySmall.copyWith(
             fontSize: 14,
             color: ShizukaColors.onSurfaceVariant.withValues(alpha: 0.8),
@@ -1253,13 +2033,63 @@ class MinimalInput extends StatelessWidget {
   }
 }
 
+class ProfileCustomFieldEditor extends StatelessWidget {
+  const ProfileCustomFieldEditor({
+    super.key,
+    required this.field,
+    required this.onDelete,
+  });
+
+  final ProfileCustomFieldController field;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              MinimalInput(
+                label: '字段名称',
+                initialValue: '',
+                hintText: '请输入字段名称',
+                controller: field.labelController,
+              ),
+              MinimalInput(
+                label: '字段内容',
+                initialValue: '',
+                hintText: '请输入字段内容',
+                controller: field.valueController,
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: _SmallRoundAction(
+            icon: Icons.delete_outline,
+            color: ShizukaColors.error,
+            onTap: onDelete,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class AddFieldButton extends StatelessWidget {
-  const AddFieldButton({super.key});
+  const AddFieldButton({super.key, this.onPressed});
+
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return TextButton.icon(
-      onPressed: () {},
+      onPressed: onPressed ?? () {},
       icon: const Icon(Icons.add, size: 18),
       label: const Text('添加自定义字段'),
       style: TextButton.styleFrom(
@@ -1278,18 +2108,11 @@ class ApiSettingsPage extends StatefulWidget {
 }
 
 class _ApiSettingsPageState extends State<ApiSettingsPage> {
-  final TextEditingController _urlController = TextEditingController(
-    text: 'https://api.openai.com/v1',
-  );
+  final TextEditingController _urlController = TextEditingController(text: '');
   final TextEditingController _apiKeyController = TextEditingController();
   bool _testing = false;
-  String _selectedModel = 'gpt-4o';
-  List<String> _models = const [
-    'gpt-4o',
-    'gpt-4.1',
-    'gpt-4.1-mini',
-    'gpt-4o-mini',
-  ];
+  String _selectedModel = '';
+  List<String> _models = const [];
 
   @override
   void initState() {
@@ -1496,7 +2319,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
               children: [
                 SoftFilledInput(
                   label: 'OpenAI URL',
-                  hint: 'https://api.openai.com/v1',
+                  hint: '请输入 API 地址',
                   controller: _urlController,
                 ),
                 const SizedBox(height: 32),
@@ -1525,15 +2348,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
             ),
           ),
           const SizedBox(height: 56),
-          Text(
-            '“于静谧之中，聆听代码的低语。”',
-            textAlign: TextAlign.center,
-            style: ShizukaText.displaySmall.copyWith(
-              fontSize: 14,
-              color: ShizukaColors.onSurfaceVariant.withValues(alpha: 0.4),
-              fontStyle: FontStyle.italic,
-            ),
-          ),
+          const SizedBox.shrink(),
         ],
       ),
     );
@@ -1555,36 +2370,25 @@ class ApiSettings {
 }
 
 class ApiSettingsStore {
-  static const _channel = MethodChannel('com.shizuka.app/api_settings');
-  static ApiSettings? _fallback;
+  static const _path = 'api_settings.json';
 
   static Future<ApiSettings> load() async {
-    try {
-      final result = await _channel.invokeMapMethod<String, dynamic>('load');
-      return ApiSettings(
-        url: result?['url'] as String?,
-        apiKey: result?['apiKey'] as String?,
-        model: result?['model'] as String?,
-        models: (result?['models'] as List?)?.whereType<String>().toList(),
-      );
-    } on MissingPluginException {
-      return _fallback ??
-          const ApiSettings(url: null, apiKey: null, model: null, models: null);
-    }
+    final result = await LocalDataStore.readMap(_path);
+    return ApiSettings(
+      url: result?['url'] as String?,
+      apiKey: result?['apiKey'] as String?,
+      model: result?['model'] as String?,
+      models: (result?['models'] as List?)?.whereType<String>().toList(),
+    );
   }
 
   static Future<void> save(ApiSettings settings) async {
-    _fallback = settings;
-    try {
-      await _channel.invokeMethod<void>('save', {
-        'url': settings.url,
-        'apiKey': settings.apiKey,
-        'model': settings.model,
-        'models': settings.models,
-      });
-    } on MissingPluginException {
-      return;
-    }
+    await LocalDataStore.writeMap(_path, {
+      'url': settings.url,
+      'apiKey': settings.apiKey,
+      'model': settings.model,
+      'models': settings.models,
+    });
   }
 }
 
@@ -1648,6 +2452,12 @@ class SoftModelDropdown extends StatelessWidget {
     return DropdownButtonFormField<String>(
       isExpanded: true,
       initialValue: models.contains(value) ? value : models.firstOrNull,
+      hint: Text(
+        '请输入模型名称',
+        style: ShizukaText.dialogue.copyWith(
+          color: ShizukaColors.outline.withValues(alpha: 0.7),
+        ),
+      ),
       selectedItemBuilder: (context) => [
         for (final model in models)
           Align(
@@ -1744,37 +2554,14 @@ class MemoriesPage extends StatelessWidget {
       ),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-        children: const [
+        children: [
+          const SizedBox(height: 120),
           Text(
-            '那些被光影镌刻的无声对白',
+            '还没有留下回忆。',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Noto Serif SC',
-              fontSize: 14,
-              letterSpacing: 2.8,
-              fontStyle: FontStyle.italic,
-              color: Color(0x9941484A),
+            style: ShizukaText.system.copyWith(
+              color: ShizukaColors.outline.withValues(alpha: 0.6),
             ),
-          ),
-          SizedBox(height: 52),
-          MemoryCard(
-            chapter: 'Chapter 01',
-            title: '尘埃落定的午后',
-            body: '阳光穿透了百叶窗的缝隙，在这间只有纸张翻动声的屋子里，时间仿佛失去了流逝的意义。那是我第一次，听懂了沉默。',
-            icon: Icons.local_library,
-          ),
-          MemoryCard(
-            chapter: 'Chapter 03',
-            title: '雨水模糊的边界',
-            body:
-                '杯中的咖啡渐渐失去温度，窗外的世界被雨水涂抹成抽象的画作。你没有说话，只是静静地看着玻璃上的倒影，那一刻，世界变得很小。',
-            icon: Icons.water_drop_outlined,
-          ),
-          MemoryCard(
-            chapter: 'Chapter 05',
-            title: '未奏响的休止符',
-            body: '空旷的礼堂里，黑白琴键反射着微弱的光。没有旋律响起，但空气中却弥漫着某种即将倾诉的情感，比任何音乐都更加震耳欲聋。',
-            icon: Icons.music_note,
           ),
         ],
       ),
@@ -1877,13 +2664,169 @@ class _Line extends StatelessWidget {
   }
 }
 
-class DialoguePage extends StatelessWidget {
+class DialoguePage extends StatefulWidget {
   const DialoguePage({super.key});
 
   @override
+  State<DialoguePage> createState() => _DialoguePageState();
+}
+
+class _DialoguePageState extends State<DialoguePage> {
+  final TextEditingController _inputController = TextEditingController();
+  CharacterProfile? _character;
+  String _userAvatarUrl = '';
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ChatSessionStore.instance.addListener(_refresh);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is CharacterProfile && _character?.id != arguments.id) {
+      _loadCharacter(arguments);
+    }
+  }
+
+  @override
+  void dispose() {
+    ChatSessionStore.instance.removeListener(_refresh);
+    _inputController.dispose();
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _loadCharacter(CharacterProfile initialCharacter) async {
+    final latest = await CharacterStore.load(initialCharacter.id);
+    final profile = await ProfileStore.load();
+    if (!mounted) {
+      return;
+    }
+    final character = latest ?? initialCharacter;
+    setState(() {
+      _character = character;
+      _userAvatarUrl = profile.avatarUrl;
+    });
+    ChatSessionStore.instance.ensureOpeningMessage(character);
+  }
+
+  Future<void> _sendMessage() async {
+    final character = _character;
+    final text = _inputController.text.trim();
+    if (character == null || text.isEmpty || _loading) {
+      return;
+    }
+
+    _inputController.clear();
+    ChatSessionStore.instance.touchCharacter(character);
+    ChatSessionStore.instance.addMessage(
+      character.id,
+      DialogueMessage(role: ChatRole.user, content: text),
+    );
+
+    setState(() => _loading = true);
+    try {
+      final settings = await ApiSettingsStore.load();
+      final baseUrl = settings.url?.trim() ?? '';
+      final apiKey = settings.apiKey?.trim() ?? '';
+      final model = settings.model?.trim() ?? '';
+      if (baseUrl.isEmpty || model.isEmpty) {
+        throw const ChatApiException('Missing API settings');
+      }
+
+      final backend = ChatBackendFactory.create(
+        baseUrl: baseUrl,
+        apiKey: apiKey,
+      );
+      final response = await backend.createChatCompletion(
+        ChatRequest(
+          model: model,
+          messages: [
+            ChatMessage(
+              role: ChatRole.system,
+              content: _buildSystemPrompt(character),
+            ),
+            for (final message in ChatSessionStore.instance.messagesFor(
+              character.id,
+            ))
+              ChatMessage(role: message.role, content: message.content),
+          ],
+        ),
+      );
+      final reply = response.text.trim();
+      if (reply.isNotEmpty) {
+        ChatSessionStore.instance.addMessage(
+          character.id,
+          DialogueMessage(role: ChatRole.assistant, content: reply),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _showDialogueMessage('连接似乎暂时没有回应。');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  String _buildSystemPrompt(CharacterProfile character) {
+    return '''
+你正在扮演一个角色。
+
+角色姓名：${character.name}
+性别：${character.gender}
+年龄：${character.age}
+
+角色人设：
+${character.persona}
+
+背景设定：
+${character.background}
+
+行为偏好：
+${character.behaviorPreference}
+
+对话示例：
+${character.dialogueExamples}
+
+请始终保持角色身份、语气和行为方式。
+不要跳出角色。
+不要提及你是 AI 或语言模型。
+根据用户输入自然回应。''';
+  }
+
+  void _showDialogueMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message, style: ShizukaText.labelLarge),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: ShizukaColors.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final character = _character;
+    final messages = character == null
+        ? const <DialogueMessage>[]
+        : ChatSessionStore.instance.messagesFor(character.id);
     return ShizukaScaffold(
-      title: '花泽类',
+      title: character?.name.isNotEmpty == true ? character!.name : '角色对话',
       showBottomNav: false,
       leading: SoftIconButton(
         icon: Icons.arrow_back,
@@ -1898,34 +2841,35 @@ class DialoguePage extends StatelessWidget {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-              children: const [
-                Center(
-                  child: Text(
-                    '10月15日 下午 4:30',
-                    style: TextStyle(color: Color(0x9941484A), fontSize: 13),
+              children: [
+                if (messages.isEmpty) ...[
+                  const SizedBox(height: 120),
+                  Text(
+                    '还没有对话内容。',
+                    textAlign: TextAlign.center,
+                    style: ShizukaText.system.copyWith(
+                      color: ShizukaColors.outline.withValues(alpha: 0.6),
+                    ),
                   ),
-                ),
-                SizedBox(height: 32),
-                MessageBubble(
-                  sender: '花泽类',
-                  body: '窗外的阳光很好，适合安静地看书。\n你今天过得怎么样？',
-                  avatar: _avatarRui,
-                ),
-                MessageBubble(
-                  sender: '我',
-                  body: '还不错。只是一直在想，如果是你，会推荐我看哪本书。',
-                  avatar: _avatarAyane,
-                  mine: true,
-                ),
-                MessageBubble(
-                  sender: '花泽类',
-                  body: '我会推荐那本关于时间与等待的诗集。\n就像现在的午后一样，静谧而漫长。',
-                  avatar: _avatarRui,
-                ),
+                ] else ...[
+                  for (final message in messages)
+                    MessageBubble(
+                      sender: message.mine ? '我' : character?.name ?? '',
+                      body: message.content,
+                      avatar: message.mine
+                          ? _userAvatarUrl
+                          : character?.avatar ?? '',
+                      mine: message.mine,
+                    ),
+                ],
               ],
             ),
           ),
-          const DialogueInputBar(),
+          DialogueInputBar(
+            controller: _inputController,
+            loading: _loading,
+            onSend: _sendMessage,
+          ),
         ],
       ),
     );
@@ -2018,7 +2962,16 @@ class MessageBubble extends StatelessWidget {
 }
 
 class DialogueInputBar extends StatelessWidget {
-  const DialogueInputBar({super.key});
+  const DialogueInputBar({
+    super.key,
+    required this.controller,
+    required this.loading,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final bool loading;
+  final VoidCallback onSend;
 
   @override
   Widget build(BuildContext context) {
@@ -2044,10 +2997,18 @@ class DialogueInputBar extends StatelessWidget {
             children: [
               Expanded(
                 child: TextField(
+                  controller: controller,
+                  enabled: !loading,
                   minLines: 1,
                   maxLines: 3,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) {
+                    if (!loading) {
+                      onSend();
+                    }
+                  },
                   decoration: InputDecoration(
-                    hintText: 'ddd',
+                    hintText: '请输入消息',
                     filled: true,
                     fillColor: ShizukaColors.surfaceContainerLow,
                     contentPadding: const EdgeInsets.symmetric(
@@ -2075,8 +3036,14 @@ class DialogueInputBar extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.send_rounded),
+                onPressed: loading ? null : onSend,
+                icon: loading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_rounded),
                 style: IconButton.styleFrom(
                   foregroundColor: ShizukaColors.primary,
                   backgroundColor: ShizukaColors.primary.withValues(alpha: 0.1),
@@ -2091,13 +3058,126 @@ class DialogueInputBar extends StatelessWidget {
   }
 }
 
-class NewCharacterPage extends StatelessWidget {
+class NewCharacterPage extends StatefulWidget {
   const NewCharacterPage({super.key});
+
+  @override
+  State<NewCharacterPage> createState() => _NewCharacterPageState();
+}
+
+class _NewCharacterPageState extends State<NewCharacterPage> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _genderController = TextEditingController();
+  final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _personaController = TextEditingController();
+  final TextEditingController _backgroundController = TextEditingController();
+  final TextEditingController _behaviorController = TextEditingController();
+  final TextEditingController _dialogueExamplesController =
+      TextEditingController();
+  String _avatar = '';
+  CharacterProfile? _editingCharacter;
+  bool _loadedArguments = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loadedArguments) {
+      return;
+    }
+    _loadedArguments = true;
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is CharacterProfile) {
+      _editingCharacter = arguments;
+      _nameController.text = arguments.name;
+      _genderController.text = arguments.gender;
+      _ageController.text = arguments.age;
+      _descriptionController.text = arguments.description;
+      _personaController.text = arguments.persona;
+      _backgroundController.text = arguments.background;
+      _behaviorController.text = arguments.behaviorPreference;
+      _dialogueExamplesController.text = arguments.dialogueExamples;
+      _avatar = arguments.avatar;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _genderController.dispose();
+    _ageController.dispose();
+    _descriptionController.dispose();
+    _personaController.dispose();
+    _backgroundController.dispose();
+    _behaviorController.dispose();
+    _dialogueExamplesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _chooseAvatar() async {
+    final file = await openFile(
+      acceptedTypeGroups: [
+        XTypeGroup(
+          label: 'Images',
+          extensions: ['png', 'jpg', 'jpeg', 'webp'],
+          mimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+        ),
+      ],
+    );
+
+    if (file == null || !mounted) {
+      return;
+    }
+
+    final extension = file.name.contains('.')
+        ? file.name.split('.').last.toLowerCase()
+        : 'png';
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
+    final savedPath = await LocalDataStore.writeBytes(
+      'characters/$id.$extension',
+      await file.readAsBytes(),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _avatar = savedPath ?? file.path);
+  }
+
+  Future<void> _saveCharacter() async {
+    final now = DateTime.now().toIso8601String();
+    final existing = _editingCharacter;
+    final id = existing?.id ?? DateTime.now().microsecondsSinceEpoch.toString();
+
+    await CharacterStore.save(
+      CharacterProfile(
+        id: id,
+        name: _nameController.text.trim(),
+        avatar: _avatar,
+        gender: _genderController.text.trim(),
+        age: _ageController.text.trim(),
+        description: _descriptionController.text.trim(),
+        persona: _personaController.text.trim(),
+        background: _backgroundController.text.trim(),
+        behaviorPreference: _behaviorController.text.trim(),
+        dialogueExamples: _dialogueExamplesController.text.trim(),
+        firstMessage: existing?.firstMessage ?? '',
+        tags: existing?.tags ?? const [],
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+      ),
+    );
+
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return ShizukaScaffold(
-      title: '新建角色',
+      title: _editingCharacter == null ? '新建角色' : '修改角色',
       primaryTitle: false,
       showBottomNav: false,
       leading: SoftIconButton(
@@ -2105,7 +3185,7 @@ class NewCharacterPage extends StatelessWidget {
         onTap: () => Navigator.pop(context),
       ),
       trailing: TextButton(
-        onPressed: () {},
+        onPressed: _saveCharacter,
         style: TextButton.styleFrom(
           padding: EdgeInsets.zero,
           minimumSize: Size.zero,
@@ -2132,30 +3212,68 @@ class NewCharacterPage extends StatelessWidget {
           ),
           ListView(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-            children: const [
-              AvatarUpload(),
-              SizedBox(height: 40),
-              MinimalInput(label: '角色姓名', initialValue: ''),
-              MinimalInput(label: '角色称呼 / 头衔', initialValue: ''),
-              SectionDivider(label: '详细设定'),
+            children: [
+              AvatarUpload(avatar: _avatar, onTap: _chooseAvatar),
+              const SizedBox(height: 40),
+              MinimalInput(
+                label: '角色姓名',
+                initialValue: '',
+                hintText: '请输入角色名',
+                controller: _nameController,
+              ),
+              MinimalInput(
+                label: '性别',
+                initialValue: '',
+                hintText: '请输入性别',
+                controller: _genderController,
+              ),
+              MinimalInput(
+                label: '年龄',
+                initialValue: '',
+                hintText: '请输入年龄',
+                controller: _ageController,
+              ),
+              MinimalInput(
+                label: '简介',
+                initialValue: '',
+                hintText: '请输入角色简介',
+                controller: _descriptionController,
+                maxLines: 2,
+                maxLength: 120,
+              ),
+              const SectionDivider(label: '详细设定'),
               EditorBlock(
                 icon: Icons.auto_awesome,
-                title: '角色性格',
-                hint: '描述角色的核心气质与性格走向...',
+                title: '角色人设',
+                hint: '描述这个角色的身份、性格特质、说话方式。',
+                controller: _personaController,
+                maxLength: 1200,
               ),
               EditorBlock(
                 icon: Icons.history_edu,
-                title: '世界观背景 / 经历',
-                hint: '角色从何处来，曾经历过哪些足以改变人生的事件？',
+                title: '背景设定',
+                hint: '补充世界观、来历、关键经历，可留空。',
+                controller: _backgroundController,
+                maxLength: 1200,
                 lines: 4,
               ),
               EditorBlock(
                 icon: Icons.chat_bubble_outline,
-                title: '语言风格 / 口头禅',
-                hint: '角色的说话方式。是温文尔雅，还是充满锐气？',
+                title: '行为偏好',
+                hint: '说话风格、习惯用语、避免提到的话题，可留空。',
+                controller: _behaviorController,
+                maxLength: 1000,
               ),
-              SizedBox(height: 16),
-              Center(child: AddFieldButton()),
+              EditorBlock(
+                icon: Icons.forum_outlined,
+                title: '对话示例',
+                hint: '可选。给模型1-3段示例对话锚定语气。建议格式：\n用户：今天好累不想上班\n你：那就早点睡，明天再说',
+                controller: _dialogueExamplesController,
+                maxLength: 800,
+                lines: 4,
+              ),
+              const SizedBox(height: 16),
+              const Center(child: AddFieldButton()),
             ],
           ),
         ],
@@ -2186,38 +3304,48 @@ class _Glow extends StatelessWidget {
 }
 
 class AvatarUpload extends StatelessWidget {
-  const AvatarUpload({super.key});
+  const AvatarUpload({super.key, this.avatar = '', this.onTap});
+
+  final String avatar;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
-        width: 112,
-        height: 112,
-        decoration: BoxDecoration(
-          color: ShizukaColors.surfaceContainerLowest,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: ShizukaColors.outlineVariant,
-            width: 2,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add_a_photo_outlined,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 112,
+          height: 112,
+          decoration: BoxDecoration(
+            color: ShizukaColors.surfaceContainerLowest,
+            shape: BoxShape.circle,
+            border: Border.all(
               color: ShizukaColors.outlineVariant,
+              width: 2,
+              style: BorderStyle.solid,
             ),
-            const SizedBox(height: 4),
-            Text(
-              '点击上传',
-              style: ShizukaText.labelSmall.copyWith(
-                color: ShizukaColors.onSurfaceVariant.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
+          ),
+          child: avatar.isEmpty
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_a_photo_outlined,
+                      color: ShizukaColors.outlineVariant,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '点击上传',
+                      style: ShizukaText.labelSmall.copyWith(
+                        color: ShizukaColors.onSurfaceVariant.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Avatar(url: avatar, size: 112),
         ),
       ),
     );
@@ -2258,19 +3386,53 @@ class SectionDivider extends StatelessWidget {
   }
 }
 
-class EditorBlock extends StatelessWidget {
+class EditorBlock extends StatefulWidget {
   const EditorBlock({
     super.key,
     required this.icon,
     required this.title,
     required this.hint,
+    required this.controller,
+    required this.maxLength,
     this.lines = 3,
   });
 
   final IconData icon;
   final String title;
   final String hint;
+  final TextEditingController controller;
+  final int maxLength;
   final int lines;
+
+  @override
+  State<EditorBlock> createState() => _EditorBlockState();
+}
+
+class _EditorBlockState extends State<EditorBlock> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_refreshCount);
+  }
+
+  @override
+  void didUpdateWidget(EditorBlock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_refreshCount);
+      widget.controller.addListener(_refreshCount);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_refreshCount);
+    super.dispose();
+  }
+
+  void _refreshCount() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2280,29 +3442,34 @@ class EditorBlock extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: ShizukaColors.primary),
+              Icon(widget.icon, size: 18, color: ShizukaColors.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  title,
+                  widget.title,
                   style: ShizukaText.labelLarge.copyWith(
                     color: ShizukaColors.onSurfaceVariant,
                   ),
                 ),
               ),
-              Icon(
-                Icons.close,
-                size: 20,
-                color: ShizukaColors.onSurfaceVariant.withValues(alpha: 0.4),
+              Text(
+                '${widget.controller.text.length}/${widget.maxLength}',
+                style: ShizukaText.labelSmall.copyWith(
+                  color: ShizukaColors.onSurfaceVariant.withValues(alpha: 0.4),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           TextField(
-            minLines: lines,
-            maxLines: lines,
+            controller: widget.controller,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(widget.maxLength),
+            ],
+            minLines: widget.lines,
+            maxLines: widget.lines,
             decoration: InputDecoration(
-              hintText: hint,
+              hintText: widget.hint,
               filled: true,
               fillColor: ShizukaColors.surfaceContainerLowest.withValues(
                 alpha: 0.5,

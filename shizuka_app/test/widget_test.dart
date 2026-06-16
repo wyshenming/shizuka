@@ -14,6 +14,6 @@ void main() {
     await tester.pumpWidget(const ShizukaApp());
 
     expect(find.text('消息'), findsOneWidget);
-    expect(find.text('绫音 (Ayane)'), findsOneWidget);
+    expect(find.text('还没有新的消息。'), findsOneWidget);
   });
 }
